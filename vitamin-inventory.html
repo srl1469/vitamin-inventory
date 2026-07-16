@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Vitamin Inventory</title>
+  <link rel="manifest" href="manifest.json" />
+  <style>
+    :root {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color-scheme: light;
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --text: #111111;
+      --muted: #6e6e73;
+      --border: #d2d2d7;
+      --danger: #b42318;
+      --danger-bg: #fee4e2;
+      --ok: #067647;
+      --ok-bg: #dcfae6;
+      --accent: #007aff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap {
+      width: min(760px, 100%);
+      margin: 0 auto;
+      padding: max(20px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+    }
+    h1 {
+      margin: 8px 0 4px;
+      font-size: clamp(30px, 7vw, 42px);
+      letter-spacing: -0.03em;
+    }
+    .subtitle {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 16px;
+    }
+    .add-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    input, button {
+      font: inherit;
+    }
+    input {
+      width: 100%;
+      min-height: 50px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0 14px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 17px;
+    }
+    button {
+      border: 0;
+      border-radius: 14px;
+      min-width: 50px;
+      min-height: 50px;
+      padding: 0 16px;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .add-btn {
+      background: var(--accent);
+      color: white;
+    }
+    .summary {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .list {
+      display: grid;
+      gap: 12px;
+    }
+    .item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.03);
+    }
+    .item.low {
+      border-color: #f04438;
+      background: #fffafa;
+    }
+    .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+    }
+    .name {
+      font-size: 20px;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+    .status {
+      border-radius: 999px;
+      padding: 6px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .status.ok {
+      color: var(--ok);
+      background: var(--ok-bg);
+    }
+    .status.danger {
+      color: var(--danger);
+      background: var(--danger-bg);
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 56px 1fr 56px;
+      gap: 10px;
+      align-items: center;
+    }
+    .count {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .count small {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .minus, .plus {
+      background: #e9e9ed;
+      color: #111;
+      font-size: 24px;
+    }
+    .delete {
+      background: transparent;
+      color: var(--danger);
+      min-height: 36px;
+      padding: 0;
+      justify-self: end;
+      font-size: 14px;
+    }
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 34px 16px;
+      background: var(--card);
+      border: 1px dashed var(--border);
+      border-radius: 18px;
+    }
+    .footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    @media (max-width: 420px) {
+      .add-row { grid-template-columns: 1fr; }
+      .add-btn { width: 100%; }
+      .topline { align-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Vitamin Inventory</h1>
+    <p class="subtitle">Track bottles and see what needs reordering.</p>
+
+    <form id="addForm" class="add-row">
+      <input id="vitaminName" type="text" placeholder="Vitamin name" autocomplete="off" maxlength="80" required />
+      <button class="add-btn" type="submit">Add</button>
+    </form>
+
+    <div class="summary">
+      <div class="pill"><strong id="itemCount">0</strong> items</div>
+      <div class="pill"><strong id="reorderCount">0</strong> need reorder</div>
+    </div>
+
+    <section id="list" class="list" aria-live="polite"></section>
+
+    <p class="footer">Your inventory is saved automatically on this device.</p>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "vitaminInventory.v1";
+    let items = loadItems();
+
+    const list = document.getElementById("list");
+    const form = document.getElementById("addForm");
+    const input = document.getElementById("vitaminName");
+    const itemCount = document.getElementById("itemCount");
+    const reorderCount = document.getElementById("reorderCount");
+
+    function loadItems() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return Array.isArray(saved) ? saved : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveItems() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      })[ch]);
+    }
+
+    function render() {
+      itemCount.textContent = items.length;
+      reorderCount.textContent = items.filter(item => item.count === 0).length;
+
+      if (items.length === 0) {
+        list.innerHTML = '<div class="empty">Add your first vitamin above.</div>';
+        return;
+      }
+
+      const sorted = [...items].sort((a, b) => {
+        if ((a.count === 0) !== (b.count === 0)) return a.count === 0 ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      list.innerHTML = sorted.map(item => {
+        const low = item.count === 0;
+        return `
+          <article class="item ${low ? "low" : ""}">
+            <div class="topline">
+              <div class="name">${escapeHtml(item.name)}</div>
+              <div class="status ${low ? "danger" : "ok"}">
+                ${low ? "TIME TO REORDER" : "IN STOCK"}
+              </div>
+            </div>
+            <div class="controls">
+              <button class="minus" type="button" aria-label="Remove one bottle" data-action="minus" data-id="${item.id}">−</button>
+              <div class="count">${item.count}<small>${item.count === 1 ? "bottle" : "bottles"}</small></div>
+              <button class="plus" type="button" aria-label="Add one bottle" data-action="plus" data-id="${item.id}">+</button>
+            </div>
+            <button class="delete" type="button" data-action="delete" data-id="${item.id}">Delete item</button>
+          </article>
+        `;
+      }).join("");
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const name = input.value.trim();
+      if (!name) return;
+
+      items.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        name,
+        count: 0
+      });
+
+      input.value = "";
+      saveItems();
+      render();
+      input.focus();
+    });
+
+    list.addEventListener("click", event => {
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+
+      const item = items.find(entry => entry.id === button.dataset.id);
+      if (!item) return;
+
+      if (button.dataset.action === "plus") item.count += 1;
+      if (button.dataset.action === "minus") item.count = Math.max(0, item.count - 1);
+      if (button.dataset.action === "delete") {
+        const confirmed = confirm(`Delete ${item.name}?`);
+        if (!confirmed) return;
+        items = items.filter(entry => entry.id !== item.id);
+      }
+
+      saveItems();
+      render();
+    });
+
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    }
+
+    render();
+  </script>
+</body>
+</html>
